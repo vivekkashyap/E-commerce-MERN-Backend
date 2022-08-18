@@ -10,7 +10,19 @@ app.use(cors());
 app.post("/register", async (req, res) => {
     let user = new User(req.body);
     let result = await user.save();
+    result = result.toObject();
+    delete result.password;
+    delete result.__v;
     res.send(result);
+})
+
+app.post("/login", async (req, res) => {
+    let user = await User.findOne(req.body).select("-password").select("-__v");
+    if (req.body.password && req.body.email && user) {
+        res.send(user);
+    } else {
+        res.send({ result: 'No user Found' });
+    }
 })
 
 app.get('/', (req, res)=> {
@@ -18,4 +30,4 @@ app.get('/', (req, res)=> {
 });
 
 
-app.listen(5000)
+app.listen(5000);
