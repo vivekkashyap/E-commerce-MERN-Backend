@@ -1,6 +1,7 @@
 const express = require('express');
 require('./database/config');
 const User = require('./database/Users');
+const Product = require('./database/Product');
 const app = express();
 const cors = require('cors');
 
@@ -23,6 +24,14 @@ app.post("/login", async (req, res) => {
     } else {
         res.send({ result: 'No user Found' });
     }
+})
+
+app.post("/add-product", async (req, res) => {
+    let product = new Product(req.body);
+    let result = await product.save();
+    result = result.toObject();
+    delete result.__v;
+    res.send(result);
 })
 
 app.get('/', (req, res)=> {
