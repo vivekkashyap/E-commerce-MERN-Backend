@@ -98,6 +98,26 @@ app.put("/product/:id", async (req, res) => {
     }
 });
 
+app.get("/search/:key", async (req, res) => {
+    try {
+        let result = await Product.find({
+            "$or": [
+                {name: { $regex: req.params.key }},
+                {category: { $regex: req.params.key }},
+                {company: { $regex: req.params.key }},
+                {price: { $regex: req.params.key }}
+            ]
+        });
+        if (result) {
+            res.send(result);
+        } else {
+            res.send({ result: 'No record found' });
+        }
+    } catch (err) {
+        console.error(err);
+    }
+});
+
 app.get('/', (req, res) => {
     console.log("App is Working...")
 });
