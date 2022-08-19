@@ -24,7 +24,7 @@ app.post("/login", async (req, res) => {
     } else {
         res.send({ result: 'No user Found' });
     }
-})
+});
 
 app.post("/add-product", async (req, res) => {
     let product = new Product(req.body);
@@ -32,7 +32,16 @@ app.post("/add-product", async (req, res) => {
     result = result.toObject();
     delete result.__v;
     res.send(result);
-})
+});
+
+app.get("/products", async (req, res) => {
+    let products = await Product.find();
+    if (products.length > 0) {
+        res.send(products);
+    } else {
+        res.send({ result: 'No products found' });
+    }
+});
 
 app.get('/', (req, res)=> {
     console.log("App is Working...")
