@@ -1,9 +1,12 @@
 const express = require('express');
 require('./database/config');
+require("dotenv").config();
 const User = require('./database/Users');
 const Product = require('./database/Product');
 const app = express();
 const cors = require('cors');
+const Jwt = require('jsonwebtoken');
+const jwtKey = process.env.SECRET_KEY;
 
 app.use(express.json());
 app.use(cors());
@@ -15,7 +18,12 @@ app.post("/register", async (req, res) => {
         result = result.toObject();
         delete result.password;
         delete result.__v;
-        res.send(result);
+        Jwt.sign({ user }, jwtKey, { expiresIn: "1h" }, (err, token) => {
+            if (err) {
+                res.status(500).send({ result: "Something went wrong!" });
+            }
+            res.status(200).send({user, auth: token });
+        });
     } catch (err) {
         console.error(err);
     }
@@ -25,7 +33,12 @@ app.post("/login", async (req, res) => {
     try {
         let user = await User.findOne(req.body).select("-password").select("-__v");
         if (req.body.password && req.body.email && user) {
-            res.send(user);
+            Jwt.sign({ user }, jwtKey, { expiresIn: "1h" }, (err, token) => {
+                if (err) {
+                    res.status(500).send({ result: "Something went wrong!" });
+                }
+                res.status(200).send({user, auth: token });
+            });
         } else {
             res.send({ result: 'No user Found' });
         }
