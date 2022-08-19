@@ -59,6 +59,15 @@ app.get("/products", async (req, res) => {
     }
 });
 
+app.delete("/product/:id", async (req, res) => {
+    try {
+        const result = await Product.deleteOne({_id: req.params.id});
+        res.send(result);
+    } catch (err) {
+        console.error(err);
+    }
+});
+
 app.get('/', (req, res) => {
     console.log("App is Working...")
 });
