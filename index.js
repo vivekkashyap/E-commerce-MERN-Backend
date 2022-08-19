@@ -1,9 +1,12 @@
 const express = require('express');
 require('./database/config');
+require("dotenv").config();
 const User = require('./database/Users');
 const Product = require('./database/Product');
 const app = express();
 const cors = require('cors');
+const Jwt = require('jsonwebtoken');
+const jwtKey = process.env.SECRET_KEY;
 
 app.use(express.json());
 app.use(cors());
@@ -15,7 +18,12 @@ app.post("/register", async (req, res) => {
         result = result.toObject();
         delete result.password;
         delete result.__v;
-        res.send(result);
+        Jwt.sign({ user }, jwtKey, { expiresIn: "1h" }, (err, token) => {
+            if (err) {
+                res.status(500).send({ result: "Something went wrong!" });
+            }
+            res.status(200).send({user, auth: token });
+        });
     } catch (err) {
         console.error(err);
     }
@@ -25,7 +33,12 @@ app.post("/login", async (req, res) => {
     try {
         let user = await User.findOne(req.body).select("-password").select("-__v");
         if (req.body.password && req.body.email && user) {
-            res.send(user);
+            Jwt.sign({ user }, jwtKey, { expiresIn: "1h" }, (err, token) => {
+                if (err) {
+                    res.status(500).send({ result: "Something went wrong!" });
+                }
+                res.status(200).send({user, auth: token });
+            });
         } else {
             res.send({ result: 'No user Found' });
         }
@@ -34,7 +47,7 @@ app.post("/login", async (req, res) => {
     }
 });
 
-app.post("/add-product", async (req, res) => {
+app.post("/add-product", verifyToken, async (req, res) => {
     try {
         let product = new Product(req.body);
         let result = await product.save();
@@ -46,7 +59,7 @@ app.post("/add-product", async (req, res) => {
     }
 });
 
-app.get("/products", async (req, res) => {
+app.get("/products", verifyToken, async (req, res) => {
     try {
         let products = await Product.find();
         if (products.length > 0) {
@@ -59,7 +72,7 @@ app.get("/products", async (req, res) => {
     }
 });
 
-app.delete("/product/:id", async (req, res) => {
+app.delete("/product/:id", verifyToken, async (req, res) => {
     try {
         const result = await Product.deleteOne({_id: req.params.id});
         res.send(result);
@@ -68,7 +81,7 @@ app.delete("/product/:id", async (req, res) => {
     }
 });
 
-app.get("/product/:id", async (req, res) => {
+app.get("/product/:id", verifyToken, async (req, res) => {
     try {
         const result = await Product.findOne({_id: req.params.id});
         if (result) {
@@ -81,7 +94,7 @@ app.get("/product/:id", async (req, res) => {
     }
 });
 
-app.put("/product/:id", async (req, res) => {
+app.put("/product/:id", verifyToken, async (req, res) => {
     try {
         let result = await Product.updateOne(
             {_id: req.params.id},
@@ -98,7 +111,7 @@ app.put("/product/:id", async (req, res) => {
     }
 });
 
-app.get("/search/:key", async (req, res) => {
+app.get("/search/:key", verifyToken, async (req, res) => {
     try {
         let result = await Product.find({
             "$or": [
@@ -117,6 +130,23 @@ app.get("/search/:key", async (req, res) => {
         console.error(err);
     }
 });
+
+function verifyToken(req, res, next) {
+    console.warn("Verifying Token...");
+    let token = req.headers['authorization'];
+    if (token) {
+        token = token.split(' ')[1];
+        Jwt.verify(token, jwtKey, (err, valid) => {
+            if (err) {
+                res.status(401).send({ result: "Valid Token Required!" })
+            } else {
+                next();
+            }
+        });
+    } else {
+        res.status(403).send({ result: "Token Required!" })
+    }
+}
 
 app.get('/', (req, res) => {
     console.log("App is Working...")
